@@ -41,7 +41,7 @@ def simulate_macbook_year(product, total_cost, laptop_age):
                 break  # Exit loop since laptop is replaced
             else:
                 # Replace component (Screen)
-                total_cost += component.repair_cost
+                total_cost += component.repair_cost # TODO: reset component age to 0
     return total_cost, laptop_age
 
 def simulate_framework_year(product, total_cost):
