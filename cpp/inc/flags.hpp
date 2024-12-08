@@ -3,10 +3,14 @@
  * @brief Defines global flags and configurations for the application.
  */
 
-#define DEBUG false               ///< Enables debug print statements.
-#define KID true                  ///< Specifies if the simulation involves having a child.
-#define ITERATIONS (1024 * 1024)  ///< Number of iterations for each core.
-#define AGGRESSIVE true           ///< Determines whether put paid off required debts into paying of other debts faster.
+#define DEBUG false  ///< Enables debug print statements.
+#define KID true     ///< Specifies if the simulation involves having a child.
+#if (DEBUG)
+#define ITERATIONS 1
+#else
+#define ITERATIONS (16 * 1024)
+#endif
+#define AGGRESSIVE true  ///< Determines whether put paid off required debts into paying of other debts faster.
 
 // Determines the aggressive payment offset based on the AGGRESSIVE flag.
 #if AGGRESSIVE

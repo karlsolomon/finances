@@ -20,8 +20,8 @@
 
 static constexpr double paymentGrowthRate = 0.5;                  ///< Multiplier on payment range after promotion.
 static constexpr int paymentGrowthFrequency = 36;                 ///< Promotion or job change cadence (in periods).
-static constexpr double paymentMin = 2000.0 + AGGRESSIVE_OFFSET;  ///< Minimum payment with offset.
-static constexpr double paymentMax = 3000.0 + AGGRESSIVE_OFFSET;  ///< Maximum payment with offset.
+static constexpr double paymentMin = 3000.0 + AGGRESSIVE_OFFSET;  ///< Minimum payment with offset.
+static constexpr double paymentMax = 4000.0 + AGGRESSIVE_OFFSET;  ///< Maximum payment with offset.
 
 // Out-of-line static initialization
 std::mutex Worker::rngMutex = std::mutex();
@@ -50,7 +50,8 @@ void Worker::run() {
         periods = 0;
         double totalPaid = 0.0;
         while (true) {
-            DEBUG_PRINT("{:.2f},{:.2f}", getTotalDebt(debts), getTotalPaid(debts) + totalPaid);
+            DEBUG_PRINT("{:.2f},{:.2f},{:.2f}", getTotalDebt(debts), getTotalPaid(debts) + totalPaid,
+                        getTotalInterestPayment(debts));
             for (auto& d : debts) {
                 d.accrue();
             }
@@ -199,6 +200,14 @@ auto Worker::getTotalPaid(std::vector<Debt>& debts) -> double {
     double res = 0.0;
     for (auto d : debts) {
         res += d.getTotalPaid();
+    }
+    return res;
+}
+
+auto Worker::getTotalInterestPayment(std::vector<Debt>& debts) -> double {
+    double res = 0.0;
+    for (auto d : debts) {
+        res += (d.rate * d.getPrincipal()) / 12.0;
     }
     return res;
 }

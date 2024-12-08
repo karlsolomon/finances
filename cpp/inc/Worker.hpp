@@ -89,4 +89,6 @@ class Worker {
      * @return Total paid amount.
      */
     static auto getTotalPaid(std::vector<Debt>& debts) -> double;
+
+    static auto getTotalInterestPayment(std::vector<Debt>& debts) -> double;
 };
