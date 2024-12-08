@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 project(finances)
-set(DEBUG false)
+set(DEBUG true)
 set(CMAKE_CXX_STANDARD 23) # TODO (ksolomon): change to C++17 for nvc++ compatibility
 set(NV false)
 if (NV)
@@ -33,3 +33,4 @@ if (DEBUG)
 else ()
     target_compile_options(finances PRIVATE -O3)
 endif ()
+target_link_libraries(finances PRIVATE tbb)

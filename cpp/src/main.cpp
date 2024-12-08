@@ -7,7 +7,9 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <execution>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -16,9 +18,9 @@
 #include <thread>
 #include <vector>
 
-#include "CsvParser.hpp"
-#include "Worker.hpp"
-#include "flags.hpp"
+#include "../inc/CsvParser.hpp"
+#include "../inc/Worker.hpp"
+#include "../inc/flags.hpp"
 
 /**
  * @brief Converts yearly interest rate to a monthly rate for a given debt.
@@ -74,9 +76,16 @@ auto getNumNonForced(std::vector<Debt>& debts) -> int {
     return res;
 }
 
+auto doWork(int taskID) -> std::pair<double, unsigned int> {
+    auto w = Worker(taskID);
+    w.run();
+    return {w.getTotalPaid(), w.getPeriods()};
+}
+
 /**
  * @brief Entry point of the simulation program.
  * Initializes the workers, parses CSV data, and combines simulation results.
+    file.close();
  * @return Exit code (0 for success).
  */
 auto main() -> int {
@@ -84,13 +93,7 @@ auto main() -> int {
 
     CsvParser csv("../debt.csv");
     std::ofstream simulations;
-    std::vector<Worker> workers;
     static std::vector<Debt> masterDebt;
-#if (DEBUG)
-    unsigned int numWorkers = 1;
-#else
-    unsigned int numWorkers = std::thread::hardware_concurrency();
-#endif
     // Parse CSV File
     if (auto data = csv.parse()) {
         for (const auto& row : *data) {
@@ -104,30 +107,23 @@ auto main() -> int {
         }
     }
 
-    Worker::setMasterDebt(masterDebt);
-
     for (auto& d : masterDebt) {
         convertToMonthly(d);
     }
 
     std::ranges::sort(masterDebt, std::ranges::greater(), &Debt::rate);
+    Worker::setMasterDebt(masterDebt);
+
+    unsigned int numTasks = ITERATIONS;
+    std::vector<int> tasks(numTasks);
+    std::vector<std::pair<double, unsigned int>> res = std::vector<std::pair<double, unsigned int>>(numTasks);
+    std::iota(tasks.begin(), tasks.end(), 0);
+    std::for_each(std::execution::par_unseq, tasks.begin(), tasks.end(),
+                  [&res](int taskID) { res[taskID] = doWork(taskID); });
 
     simulations.open("simulations.csv", std::ios_base::binary);
-    for (unsigned int i = 0; i < numWorkers; i++) {
-        workers.emplace_back(ITERATIONS / numWorkers, i);
-    }
-    for (auto& w : workers) {
-        w.start();
-    }
-    for (auto& w : workers) {
-        w.join();
-    }
-    for (unsigned int i = 0; i < numWorkers; i++) {
-        std::string partialSim = FILE_PREFIX + std::to_string(i) + ".csv";
-        std::ifstream input{partialSim, std::ios_base::binary};
-        simulations << input.rdbuf();
-        input.close();
-        std::filesystem::remove(std::string(partialSim));
+    for (unsigned int i = 0; i < numTasks; i++) {
+        simulations << std::format("{:.2f},{}\n", res[i].first, res[i].second);
     }
 
     simulations.close();

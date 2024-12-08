@@ -3,7 +3,7 @@
  * @brief Defines a Worker class to simulate financial operations and debt payment strategies.
  */
 
-#include "Worker.hpp"
+#include "../inc/Worker.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -16,7 +16,7 @@
 #include <ostream>
 #include <print>
 
-#include "flags.hpp"
+#include "../inc/flags.hpp"
 
 static constexpr double paymentGrowthRate = 0.5;                  ///< Multiplier on payment range after promotion.
 static constexpr int paymentGrowthFrequency = 36;                 ///< Promotion or job change cadence (in periods).
@@ -33,70 +33,53 @@ std::uniform_real_distribution<double> Worker::distr = std::uniform_real_distrib
  * @brief Main simulation function for the worker.
  */
 void Worker::run() {
-    std::ofstream file;
-    file.open(FILE_PREFIX + std::to_string(this->id) + ".csv");
     std::vector<Debt> debts;
-    int periods = 0;
-    for (int i = 0; i < this->iter; i++) {
-        for (auto d : masterDebt) {
-            debts.emplace_back(d.principal, d.rate, d.interestPeriod, d.id, d.minimumMonthlyPayment, d.periodTaken);
-        }
+    /*for (int i = 0; i < this->iter; i++) {*/
+    for (auto d : masterDebt) {
+        debts.emplace_back(d.principal, d.rate, d.interestPeriod, d.id, d.minimumMonthlyPayment, d.periodTaken);
+    }
 
-        // sort by decreasing interest rate
-        std::ranges::sort(debts, std::ranges::greater(), &Debt::rate);
+    // sort by decreasing interest rate
+    std::ranges::sort(debts, std::ranges::greater(), &Debt::rate);
+    for (auto& d : debts) {
+        d.periods = 0;
+    }
+    while (true) {
+        DEBUG_PRINT("{:.2f},{:.2f},{:.2f}", getTotalDebt(debts), getTotalPaid(debts) + totalPaid,
+                    getTotalInterestPayment(debts));
         for (auto& d : debts) {
-            d.periods = 0;
+            d.accrue();
         }
-        periods = 0;
-        double totalPaid = 0.0;
-        while (true) {
-            DEBUG_PRINT("{:.2f},{:.2f},{:.2f}", getTotalDebt(debts), getTotalPaid(debts) + totalPaid,
-                        getTotalInterestPayment(debts));
-            for (auto& d : debts) {
-                d.accrue();
+
+        double payment = getRandom(periods);
+        payForcedDebt(debts, payment);
+        payNonForcedDebt(debts, payment);
+
+        for (auto& d : debts) {
+            if (Debt::isBasicallyZero(d.principal)) {
+                totalPaid += d.totalPaid;
             }
+        }
 
-            double payment = getRandom(periods);
-            payForcedDebt(debts, payment);
-            payNonForcedDebt(debts, payment);
-
-            for (auto& d : debts) {
-                if (Debt::isBasicallyZero(d.principal)) {
-                    totalPaid += d.totalPaid;
-                }
-            }
-
-            auto isZero = [](Debt& d) { return Debt::isBasicallyZero(d.principal); };
-            auto new_end = std::ranges::remove_if(debts, isZero);
-            debts.erase(new_end.begin(), debts.end());
-            periods++;
+        auto isZero = [](Debt& d) { return Debt::isBasicallyZero(d.principal); };
+        auto new_end = std::ranges::remove_if(debts, isZero);
+        debts.erase(new_end.begin(), debts.end());
+        periods++;
 #if (KID)
-            if ((debts.size() == 1) && (debts[0].id == "\"kid\"")) {
-                // for the purposes of this exercise we're only interested in when we pay off the student loans, not
-                // when we acquire enough money to stash away to fully raise the child
-                debts.clear();
-                break;
-            }
+        if ((debts.size() == 1) && (debts[0].id == "\"kid\"")) {
+            // for the purposes of this exercise we're only interested in when we pay off the student loans, not
+            // when we acquire enough money to stash away to fully raise the child
+            debts.clear();
+            break;
+        }
 #endif
 
-            if (!Debt::isBasicallyZero(payment)) {
-                break;
-            }
+        if (!Debt::isBasicallyZero(payment)) {
+            break;
         }
-        file << std::format("{:.2f}", totalPaid) << "," << periods << std::endl;
     }
-    file.close();
+    /*}*/
 }
-
-/**
- * @brief Starts the worker thread.
- */
-void Worker::start() { t = std::thread(&Worker::run, this); }
-
-/**
- * @brief Joins the worker thread to the main thread.
- */
-void Worker::join() { t.join(); }
 
 /**
  * @brief Sets the shared debt configuration for all workers.

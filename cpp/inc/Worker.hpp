@@ -8,7 +8,6 @@
 #include <cstdlib>
 #include <mutex>
 #include <random>
-#include <thread>
 #include <vector>
 
 #include "Debt.hpp"
@@ -19,34 +18,28 @@
  */
 class Worker {
  private:
-    int iter;                                             ///< Number of iterations the worker will perform.
     int id;                                               ///< Unique ID of the worker thread.
-    std::thread t;                                        ///< Thread object associated with the worker.
     static std::mt19937 gen;                              ///< Random number generator for payment amounts.
     static std::mutex rngMutex;                           ///< Mutex for thread-safe RNG access.
     static std::uniform_real_distribution<double> distr;  ///< Distribution for random payments.
     static std::vector<Debt> masterDebt;                  ///< Shared debt configuration across all workers.
+    double totalPaid = 0.0;
+    unsigned int periods = 0;
 
  public:
     /**
      * @brief Constructs a Worker object.
-     * @param iter Number of iterations to perform.
      * @param id Unique ID for the worker.
      */
-    Worker(int iter, int id) : iter(iter), id(id) {}
+    Worker(int id) : id(id) {}
+
+    [[nodiscard]] auto getTotalPaid() const -> double { return this->totalPaid; }
+    [[nodiscard]] auto getPeriods() const -> double { return this->periods; }
 
     /**
      * @brief Main simulation function for the worker.
      */
     void run();
-    /**
-     * @brief Starts the worker thread.
-     */
-    void start();
-    /**
-     * @brief Joins the worker thread to the main thread.
-     */
-    void join();
     /**
      * @brief Sets the shared debt configuration for all workers.
      * @param d Reference to the debt vector.

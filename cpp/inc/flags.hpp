@@ -8,7 +8,7 @@
 #if (DEBUG)
 #define ITERATIONS 1
 #else
-#define ITERATIONS (16 * 1024)
+#define ITERATIONS (64)
 #endif
 #define AGGRESSIVE true  ///< Determines whether put paid off required debts into paying of other debts faster.
 
