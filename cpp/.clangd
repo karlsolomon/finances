@@ -1,0 +1,15 @@
+# CPP
+#CPP for ARM
+ CompileFlags:
+   Add: [ -std=c++2c, -xc++, -Wall, -Wpedantic, -Wextra, -fsanitize=thread, -O3, -I/home/ksolomon/git/finances/cpp/inc/]
+   Remove: [-fmodules-ts,]
+   Compiler: /usr/bin/arm-none-eabi-c++
+ Diagnostics:
+   UnusedIncludes: Strict
+   ClangTidy:
+     FastCheckFilter: None
+     Add: [modernize*, bugprone*, readability*]
+     Remove: [readability-identifier-length,]
+     CheckOptions:
+       readability-identifier-naming.VariableCase: camelCase
+
